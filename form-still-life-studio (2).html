@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form. — Still Life Lighting Studio</title>
+<style>
+  :root {
+    --ink: #111214;
+    --paper: #eeece6;
+    --paper-dim: #e2dfd6;
+    --accent: #c22a1f;
+    --gray-swatch: #909090;
+    --rail-w: 300px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #eeece6;
+      --paper: #17181a;
+      --paper-dim: #212226;
+      --accent: #e2453a;
+      --gray-swatch: #6b6b6b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #eeece6;
+    --paper: #17181a;
+    --paper-dim: #212226;
+    --accent: #e2453a;
+    --gray-swatch: #6b6b6b;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    overflow: hidden;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ---------- RAIL ---------- */
+  #rail {
+    width: var(--rail-w);
+    min-width: 220px;
+    max-width: 340px;
+    flex-shrink: 0;
+    background: var(--paper-dim);
+    border-right: 3px solid var(--ink);
+    overflow-y: auto;
+    padding: 20px 18px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  header.wordmark h1 {
+    font-family: "Arial Narrow", Impact, sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    font-size: 34px;
+    margin: 0;
+    line-height: 0.9;
+    color: var(--ink);
+  }
+  header.wordmark p {
+    margin: 6px 0 0;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--ink);
+    opacity: 0.65;
+  }
+
+  .rail-section {
+    border-top: 2px solid var(--ink);
+    padding-top: 16px;
+  }
+  .rail-section:first-of-type { border-top: none; padding-top: 0; }
+
+  .rail-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ---------- PALETTE ---------- */
+  .palette-tray {
+    border: 2px dashed var(--ink);
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .palette-tile {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+  .palette-tile:active { cursor: grabbing; }
+  .palette-tile svg { width: 60%; height: 60%; }
+  .palette-tile span {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 700;
+  }
+  .drag-hint {
+    margin-top: 8px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    opacity: 0.6;
+    text-align: center;
+  }
+
+  /* ---------- SLIDERS ---------- */
+  .slider-row { margin-bottom: 4px; }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--ink);
+    outline: none;
+    margin: 10px 0 2px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--ink);
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--ink);
+    cursor: pointer;
+  }
+
+  /* ---------- CAMERA CONTROLS ---------- */
+  .cam-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .rail-btn {
+    flex: 1;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    color: var(--ink);
+    padding: 10px 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .rail-btn:hover { background: var(--ink); color: var(--paper); }
+  .rail-btn:active { transform: translateY(1px); }
+
+  /* ---------- SELECTED OBJECT ---------- */
+  #selected-section { display: none; }
+  #selected-section.visible { display: block; }
+  #selected-name {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 10px;
+  }
+  .delete-btn {
+    width: 100%;
+    background: var(--accent);
+    border: 2px solid var(--ink);
+    color: var(--paper);
+    padding: 10px 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .delete-btn:hover { opacity: 0.85; }
+
+  /* ---------- ACTIONS ---------- */
+  .actions { display: flex; flex-direction: column; gap: 8px; }
+  .action-btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: 2px solid var(--ink);
+    padding: 12px 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .action-btn:hover { opacity: 0.85; }
+  .action-btn.secondary {
+    background: var(--paper);
+    color: var(--ink);
+  }
+
+  /* ---------- STAGE ---------- */
+  #stage {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: var(--paper);
+  }
+  #canvas-container { position: absolute; inset: 0; }
+  #canvas-container canvas { display: block; width: 100%; height: 100%; }
+
+  #empty-hint {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ink);
+    opacity: 0.4;
+    pointer-events: none;
+    text-align: center;
+  }
+
+  /* ---------- LIGHT ARC OVERLAY ---------- */
+  #light-arc-overlay {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    height: 130px;
+    pointer-events: none;
+  }
+  #light-arc-overlay .arc-path {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-dasharray: 4 4;
+    opacity: 0.85;
+  }
+  #light-arc-overlay .arc-handle {
+    fill: var(--paper);
+    stroke: var(--accent);
+    stroke-width: 3;
+    cursor: grab;
+    pointer-events: all;
+    touch-action: none;
+  }
+  #light-arc-overlay .arc-handle:active { cursor: grabbing; }
+
+  /* ---------- DRAG GHOST LABEL ---------- */
+  #drag-tag {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 6px 12px;
+    pointer-events: none;
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 720px) {
+    #app { flex-direction: column; }
+    #rail {
+      width: 100%;
+      max-width: none;
+      height: 42%;
+      border-right: none;
+      border-bottom: 3px solid var(--ink);
+    }
+    #stage { height: 58%; }
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <aside id="rail">
+    <header class="wordmark">
+      <h1>Form.</h1>
+      <p>Still Life Lighting Studio</p>
+    </header>
+
+    <div class="rail-section">
+      <p class="rail-label">Form Palette</p>
+      <div class="palette-tray" id="palette-tray">
+        <!-- tiles injected by JS -->
+      </div>
+      <p class="drag-hint">Drag a shape onto the workplane</p>
+    </div>
+
+    <div class="rail-section">
+      <p class="rail-label">Background Value</p>
+      <div class="slider-row">
+        <input type="range" id="bg-slider" min="0" max="100" value="55">
+      </div>
+    </div>
+
+    <div class="rail-section">
+      <p class="rail-label">Camera</p>
+      <div class="cam-buttons">
+        <button class="rail-btn" id="rotate-left" aria-label="Rotate workplane left">◀ 15°</button>
+        <button class="rail-btn" id="rotate-right" aria-label="Rotate workplane right">15° ▶</button>
+      </div>
+      <p class="rail-label" style="margin-bottom:6px; opacity:0.7;">Zoom</p>
+      <div class="slider-row">
+        <input type="range" id="zoom-slider" min="0" max="100" value="45">
+      </div>
+    </div>
+
+    <div class="rail-section" id="selected-section">
+      <p class="rail-label">Selected Object</p>
+      <p id="selected-name">—</p>
+      <button class="delete-btn" id="delete-btn">Delete</button>
+    </div>
+
+    <div class="rail-section actions">
+      <button class="action-btn" id="export-btn">Export Image</button>
+      <button class="action-btn secondary" id="reset-btn">Reset Scene</button>
+    </div>
+  </aside>
+
+  <main id="stage">
+    <div id="canvas-container"></div>
+
+    <svg id="light-arc-overlay" viewBox="0 0 220 130" aria-hidden="true">
+      <path class="arc-path" d="M 15 115 A 95 95 0 0 1 205 115"></path>
+      <circle class="arc-handle" id="arc-handle" cx="110" cy="20" r="9"></circle>
+    </svg>
+
+    <p id="empty-hint">Drag a shape onto the workplane to begin</p>
+    <div id="drag-tag" style="display:none;">Release to place</div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     CONFIG
+  ============================================================ */
+  var WORKPLANE_SIZE = 12;
+  var WORKPLANE_HALF = WORKPLANE_SIZE / 2 - 0.4;
+  var ARC_RADIUS = 6.5;
+  var ROTATE_STEP = THREE.Math.degToRad(15);
+  var ZOOM_MIN_DIST = 3.2;
+  var ZOOM_MAX_DIST = WORKPLANE_SIZE * 1.3;
+  var DEFAULT_LIGHT_ANGLE_DEG = 55;
+
+  var SHAPES = {
+    sphere:   { label: "Sphere",   color: "#cfcabd" },
+    cube:     { label: "Cube",     color: "#cfcabd" },
+    cone:     { label: "Cone",     color: "#cfcabd" },
+    cylinder: { label: "Cylinder", color: "#cfcabd" },
+    pyramid:  { label: "Pyramid",  color: "#cfcabd" },
+    prism:    { label: "Tall Prism", color: "#cfcabd" }
+  };
+
+  var ICONS = {
+    sphere: '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>',
+    cube: '<svg viewBox="0 0 40 40"><rect x="8" y="8" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>',
+    cone: '<svg viewBox="0 0 40 40"><polygon points="20,6 33,33 7,33" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>',
+    cylinder: '<svg viewBox="0 0 40 40"><ellipse cx="20" cy="10" rx="12" ry="4.5" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="8" y1="10" x2="8" y2="30" stroke="currentColor" stroke-width="2.5"/><line x1="32" y1="10" x2="32" y2="30" stroke="currentColor" stroke-width="2.5"/><path d="M 8 30 A 12 4.5 0 0 0 32 30" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>',
+    pyramid: '<svg viewBox="0 0 40 40"><polygon points="20,5 34,30 6,30" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="20" y1="5" x2="20" y2="30" stroke="currentColor" stroke-width="1.5" opacity="0.5"/></svg>',
+    prism: '<svg viewBox="0 0 40 40"><rect x="12" y="5" width="16" height="30" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="12" y1="20" x2="28" y2="20" stroke="currentColor" stroke-width="1.5" opacity="0.5"/></svg>'
+  };
+
+  /* ============================================================
+     THREE.JS SETUP
+  ============================================================ */
+  var container = document.getElementById("canvas-container");
+  var scene = new THREE.Scene();
+
+  var camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
+  var camTarget = new THREE.Vector3(0, 0.9, 0);
+  var camDir = new THREE.Vector3(0, 3.4, 9).normalize();
+
+  var renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  container.appendChild(renderer.domElement);
+
+  // Rotating workplane group: holds the plane, all placed objects, and the light.
+  var workplaneGroup = new THREE.Group();
+  scene.add(workplaneGroup);
+
+  // Workplane surface
+  var planeGeo = new THREE.PlaneGeometry(WORKPLANE_SIZE, WORKPLANE_SIZE);
+  var planeMat = new THREE.MeshStandardMaterial({ color: 0xe2dfd6, roughness: 0.95, metalness: 0.0 });
+  var workplaneMesh = new THREE.Mesh(planeGeo, planeMat);
+  workplaneMesh.rotation.x = -Math.PI / 2;
+  workplaneMesh.receiveShadow = true;
+  workplaneGroup.add(workplaneMesh);
+
+  // Ambient fill so shadows aren't pure black
+  var ambient = new THREE.AmbientLight(0xffffff, 0.28);
+  scene.add(ambient);
+
+  // Key light + target: fixed to the viewer/scene (NOT children of the
+  // rotating workplane group), so as the workplane turns, the light stays
+  // put and the shadows sweep across the objects.
+  var keyLight = new THREE.DirectionalLight(0xfff6e8, 1.15);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(1024, 1024);
+  keyLight.shadow.camera.left = -8;
+  keyLight.shadow.camera.right = 8;
+  keyLight.shadow.camera.top = 8;
+  keyLight.shadow.camera.bottom = -8;
+  keyLight.shadow.camera.near = 0.5;
+  keyLight.shadow.camera.far = 30;
+  keyLight.shadow.bias = -0.0015;
+  scene.add(keyLight);
+
+  var lightTarget = new THREE.Object3D();
+  lightTarget.position.set(0, 0.4, 0);
+  scene.add(lightTarget);
+  keyLight.target = lightTarget;
+
+  function setLightAngle(deg) {
+    var rad = THREE.Math.degToRad(deg);
+    keyLight.position.set(
+      -ARC_RADIUS * Math.cos(rad),
+      ARC_RADIUS * Math.sin(rad) + 0.3,
+      ARC_RADIUS * 0.45
+    );
+  }
+  setLightAngle(DEFAULT_LIGHT_ANGLE_DEG);
+  var currentLightAngle = DEFAULT_LIGHT_ANGLE_DEG;
+
+  /* ---------- geometry factory ---------- */
+  function makeGeometry(type) {
+    switch (type) {
+      case "sphere":   return { geo: new THREE.SphereGeometry(0.6, 28, 20), halfHeight: 0.6 };
+      case "cube":     return { geo: new THREE.BoxGeometry(1, 1, 1), halfHeight: 0.5 };
+      case "cone":     return { geo: new THREE.ConeGeometry(0.62, 1.25, 28), halfHeight: 0.625 };
+      case "cylinder": return { geo: new THREE.CylinderGeometry(0.55, 0.55, 1.2, 28), halfHeight: 0.6 };
+      case "pyramid":  return { geo: new THREE.ConeGeometry(0.72, 1.2, 4), halfHeight: 0.6, rotY: Math.PI / 4 };
+      case "prism":    return { geo: new THREE.BoxGeometry(1, 2, 1), halfHeight: 1.0 };
+    }
+  }
+
+  function makeMaterial() {
+    return new THREE.MeshStandardMaterial({ color: 0xcfcabd, roughness: 0.75, metalness: 0.02 });
+  }
+
+  /* ============================================================
+     PLACED OBJECTS
+  ============================================================ */
+  var placedObjects = [];
+  var selectedObject = null;
+
+  function clampToWorkplane(x, z) {
+    return {
+      x: Math.max(-WORKPLANE_HALF, Math.min(WORKPLANE_HALF, x)),
+      z: Math.max(-WORKPLANE_HALF, Math.min(WORKPLANE_HALF, z))
+    };
+  }
+
+  function createMesh(type) {
+    var g = makeGeometry(type);
+    var mesh = new THREE.Mesh(g.geo, makeMaterial());
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    if (g.rotY) mesh.rotation.y = g.rotY;
+    mesh.userData.type = type;
+    mesh.userData.halfHeight = g.halfHeight;
+    mesh.userData.baseRotY = g.rotY || 0;
+    return mesh;
+  }
+
+  function updateEmptyHint() {
+    document.getElementById("empty-hint").style.display = placedObjects.length ? "none" : "block";
+  }
+
+  function selectObject(mesh) {
+    if (selectedObject === mesh) return;
+    deselectObject();
+    selectedObject = mesh;
+    mesh.material.emissive = new THREE.Color(0xc22a1f);
+    mesh.material.emissiveIntensity = 0.35;
+    document.getElementById("selected-section").classList.add("visible");
+    document.getElementById("selected-name").textContent = SHAPES[mesh.userData.type].label;
+  }
+
+  function deselectObject() {
+    if (!selectedObject) return;
+    selectedObject.material.emissiveIntensity = 0;
+    selectedObject = null;
+    document.getElementById("selected-section").classList.remove("visible");
+  }
+
+  function deleteObject(mesh) {
+    workplaneGroup.remove(mesh);
+    mesh.geometry.dispose();
+    mesh.material.dispose();
+    var idx = placedObjects.indexOf(mesh);
+    if (idx > -1) placedObjects.splice(idx, 1);
+    if (selectedObject === mesh) {
+      selectedObject = null;
+      document.getElementById("selected-section").classList.remove("visible");
+    }
+    updateEmptyHint();
+  }
+
+  document.getElementById("delete-btn").addEventListener("click", function () {
+    if (selectedObject) deleteObject(selectedObject);
+  });
+
+  /* ============================================================
+     RAYCASTING HELPERS
+  ============================================================ */
+  var raycaster = new THREE.Raycaster();
+  var pointerNDC = new THREE.Vector2();
+
+  function setPointerNDC(clientX, clientY) {
+    var rect = renderer.domElement.getBoundingClientRect();
+    pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  function raycastWorkplane(clientX, clientY) {
+    setPointerNDC(clientX, clientY);
+    raycaster.setFromCamera(pointerNDC, camera);
+    var hits = raycaster.intersectObject(workplaneMesh, false);
+    if (!hits.length) return null;
+    var local = workplaneGroup.worldToLocal(hits[0].point.clone());
+    return clampToWorkplane(local.x, local.z);
+  }
+
+  function raycastPlacedObjects(clientX, clientY) {
+    setPointerNDC(clientX, clientY);
+    raycaster.setFromCamera(pointerNDC, camera);
+    var hits = raycaster.intersectObjects(placedObjects, false);
+    return hits.length ? hits[0].object : null;
+  }
+
+  /* ============================================================
+     PALETTE DRAG-TO-PLACE
+  ============================================================ */
+  var tray = document.getElementById("palette-tray");
+  Object.keys(SHAPES).forEach(function (type) {
+    var tile = document.createElement("div");
+    tile.className = "palette-tile";
+    tile.setAttribute("data-type", type);
+    tile.setAttribute("tabindex", "0");
+    tile.innerHTML = ICONS[type] + "<span>" + SHAPES[type].label + "</span>";
+    tray.appendChild(tile);
+
+    tile.addEventListener("pointerdown", function (e) {
+      e.preventDefault();
+      startPlacing(type, e.clientX, e.clientY);
+    });
+  });
+
+  var ghostMesh = null;
+  var placingActive = false;
+
+  function startPlacing(type, clientX, clientY) {
+    placingActive = true;
+    ghostMesh = createMesh(type);
+    ghostMesh.material.transparent = true;
+    ghostMesh.material.opacity = 0.55;
+    // Bake orientation now: cancel out the group's current rotation so the
+    // object appears in its canonical orientation relative to the camera,
+    // and will hold that relative orientation as the workplane turns later.
+    ghostMesh.rotation.y = ghostMesh.userData.baseRotY - workplaneGroup.rotation.y;
+    ghostMesh.visible = false;
+    workplaneGroup.add(ghostMesh);
+    document.getElementById("drag-tag").style.display = "block";
+    updatePlacingPosition(clientX, clientY);
+
+    window.addEventListener("pointermove", onPlacingMove);
+    window.addEventListener("pointerup", onPlacingUp);
+  }
+
+  function updatePlacingPosition(clientX, clientY) {
+    var hit = raycastWorkplane(clientX, clientY);
+    if (hit) {
+      ghostMesh.visible = true;
+      ghostMesh.position.set(hit.x, ghostMesh.userData.halfHeight, hit.z);
+    } else {
+      ghostMesh.visible = false;
+    }
+  }
+
+  function onPlacingMove(e) {
+    if (!placingActive) return;
+    updatePlacingPosition(e.clientX, e.clientY);
+  }
+
+  function onPlacingUp(e) {
+    if (!placingActive) return;
+    placingActive = false;
+    window.removeEventListener("pointermove", onPlacingMove);
+    window.removeEventListener("pointerup", onPlacingUp);
+    document.getElementById("drag-tag").style.display = "none";
+
+    var hit = raycastWorkplane(e.clientX, e.clientY);
+    if (hit) {
+      ghostMesh.position.set(hit.x, ghostMesh.userData.halfHeight, hit.z);
+      ghostMesh.material.transparent = false;
+      ghostMesh.material.opacity = 1;
+      ghostMesh.visible = true;
+      placedObjects.push(ghostMesh);
+      updateEmptyHint();
+    } else {
+      workplaneGroup.remove(ghostMesh);
+      ghostMesh.geometry.dispose();
+      ghostMesh.material.dispose();
+    }
+    ghostMesh = null;
+  }
+
+  /* ============================================================
+     SELECT / REPOSITION / DESELECT ON STAGE
+  ============================================================ */
+  var dragCandidate = null;
+  var dragMoved = false;
+  var dragStart = { x: 0, y: 0 };
+
+  renderer.domElement.addEventListener("pointerdown", function (e) {
+    if (placingActive) return;
+    var hitObj = raycastPlacedObjects(e.clientX, e.clientY);
+    if (hitObj) {
+      dragCandidate = hitObj;
+      dragMoved = false;
+      dragStart.x = e.clientX;
+      dragStart.y = e.clientY;
+      window.addEventListener("pointermove", onStageMove);
+      window.addEventListener("pointerup", onStageUp);
+    } else {
+      deselectObject();
+    }
+  });
+
+  function onStageMove(e) {
+    if (!dragCandidate) return;
+    var dx = e.clientX - dragStart.x;
+    var dy = e.clientY - dragStart.y;
+    if (!dragMoved && Math.hypot(dx, dy) > 4) {
+      dragMoved = true;
+      selectObject(dragCandidate);
+    }
+    if (dragMoved) {
+      var hit = raycastWorkplane(e.clientX, e.clientY);
+      if (hit) {
+        dragCandidate.position.x = hit.x;
+        dragCandidate.position.z = hit.z;
+      }
+    }
+  }
+
+  function onStageUp(e) {
+    if (dragCandidate) {
+      if (!dragMoved) selectObject(dragCandidate);
+    }
+    dragCandidate = null;
+    window.removeEventListener("pointermove", onStageMove);
+    window.removeEventListener("pointerup", onStageUp);
+  }
+
+  /* ============================================================
+     ROTATE WORKPLANE (camera/turntable + placement orientation)
+  ============================================================ */
+  var rotateAnim = null;
+  function rotateWorkplane(dir) {
+    var from = workplaneGroup.rotation.y;
+    var to = from + dir * ROTATE_STEP;
+    var start = performance.now();
+    var duration = 260;
+    if (rotateAnim) cancelAnimationFrame(rotateAnim);
+    function step(now) {
+      var t = Math.min(1, (now - start) / duration);
+      var eased = 1 - Math.pow(1 - t, 3);
+      workplaneGroup.rotation.y = from + (to - from) * eased;
+      if (t < 1) rotateAnim = requestAnimationFrame(step);
+    }
+    rotateAnim = requestAnimationFrame(step);
+  }
+  document.getElementById("rotate-left").addEventListener("click", function () { rotateWorkplane(1); });
+  document.getElementById("rotate-right").addEventListener("click", function () { rotateWorkplane(-1); });
+
+  /* ============================================================
+     ZOOM
+  ============================================================ */
+  function applyZoom(val) {
+    var t = val / 100;
+    var dist = ZOOM_MAX_DIST + (ZOOM_MIN_DIST - ZOOM_MAX_DIST) * t;
+    var pos = camTarget.clone().add(camDir.clone().multiplyScalar(dist));
+    camera.position.copy(pos);
+    camera.lookAt(camTarget);
+  }
+  var zoomSlider = document.getElementById("zoom-slider");
+  zoomSlider.addEventListener("input", function () { applyZoom(parseFloat(zoomSlider.value)); });
+  applyZoom(parseFloat(zoomSlider.value));
+
+  /* ============================================================
+     BACKGROUND VALUE SLIDER
+  ============================================================ */
+  function applyBackground(val) {
+    var t = val / 100; // 0 = white, 100 = black
+    var v = Math.round(255 * (1 - t));
+    var hex = (v << 16) | (v << 8) | v;
+    scene.background = new THREE.Color(hex);
+  }
+  var bgSlider = document.getElementById("bg-slider");
+  bgSlider.addEventListener("input", function () { applyBackground(parseFloat(bgSlider.value)); });
+  applyBackground(parseFloat(bgSlider.value));
+
+  /* ============================================================
+     LIGHT ARC OVERLAY (2D SVG control)
+  ============================================================ */
+  var arcHandle = document.getElementById("arc-handle");
+  var arcSvg = document.getElementById("light-arc-overlay");
+  var ARC_CX = 110, ARC_CY = 115, ARC_R = 95;
+
+  function angleToHandlePos(deg) {
+    var rad = THREE.Math.degToRad(deg);
+    return {
+      x: ARC_CX - ARC_R * Math.cos(rad),
+      y: ARC_CY - ARC_R * Math.sin(rad)
+    };
+  }
+  function placeHandle(deg) {
+    var p = angleToHandlePos(deg);
+    arcHandle.setAttribute("cx", p.x);
+    arcHandle.setAttribute("cy", p.y);
+  }
+  placeHandle(currentLightAngle);
+
+  var draggingArc = false;
+  arcHandle.addEventListener("pointerdown", function (e) {
+    draggingArc = true;
+    e.preventDefault();
+  });
+  window.addEventListener("pointermove", function (e) {
+    if (!draggingArc) return;
+    var rect = arcSvg.getBoundingClientRect();
+    var scaleX = 220 / rect.width, scaleY = 130 / rect.height;
+    var x = (e.clientX - rect.left) * scaleX;
+    var y = (e.clientY - rect.top) * scaleY;
+    var dx = ARC_CX - x, dy = ARC_CY - y;
+    var deg = THREE.Math.radToDeg(Math.atan2(dy, dx));
+    deg = Math.max(2, Math.min(178, deg));
+    currentLightAngle = deg;
+    placeHandle(deg);
+    setLightAngle(deg);
+  });
+  window.addEventListener("pointerup", function () { draggingArc = false; });
+
+  /* ============================================================
+     EXPORT / RESET
+  ============================================================ */
+  document.getElementById("export-btn").addEventListener("click", function () {
+    renderer.render(scene, camera);
+    var link = document.createElement("a");
+    link.download = "form-still-life.png";
+    link.href = renderer.domElement.toDataURL("image/png");
+    link.click();
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    placedObjects.slice().forEach(function (m) { deleteObject(m); });
+    workplaneGroup.rotation.y = 0;
+    zoomSlider.value = 45; applyZoom(45);
+    bgSlider.value = 55; applyBackground(55);
+    currentLightAngle = DEFAULT_LIGHT_ANGLE_DEG;
+    placeHandle(DEFAULT_LIGHT_ANGLE_DEG);
+    setLightAngle(DEFAULT_LIGHT_ANGLE_DEG);
+    deselectObject();
+    updateEmptyHint();
+  });
+
+  /* ============================================================
+     RENDER LOOP + RESIZE
+  ============================================================ */
+  function onResize() {
+    var w = container.clientWidth, h = container.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  }
+  window.addEventListener("resize", onResize);
+  onResize();
+
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  }
+  animate();
+
+})();
+</script>
+</body>
+</html>
